@@ -29,6 +29,7 @@ def initialize_state_dict(state_dict, experiment_config):
     state_dict["end_control_trials"] = experiment_config["experiment"]["number_of_end_control_trials"]
     state_dict["trial_conditions"] = experiment_config["experiment"]["trial_conditions"]
     state_dict["randomize_trials"] = experiment_config["experiment"]["randomize_trials"]
+    state_dict["trial_randomization"] = experiment_config["experiment"].get("trial_randomization", "full_random")
 
     state_dict["fullscreen"] = experiment_config["interface_data"]["full_screen_mode"]
     state_dict["data_stream_interval"] = experiment_config["interface_data"]["data_stream_interval"]
@@ -42,6 +43,7 @@ def initialize_state_dict(state_dict, experiment_config):
     state_dict["current_state"] = None
     state_dict["torque_profile"] = "None"
     state_dict["torque_magnitude"] = "None"
+    state_dict["exo_condition"] = "None"
     
     prediction_stream = False
     if state_dict["real_time_prediction"]:

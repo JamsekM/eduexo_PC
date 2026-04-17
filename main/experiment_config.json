@@ -14,9 +14,10 @@
             "2": ["resist", 50, "trapezoid", 2],
             "3": ["assist", 50, "trapezoid", 1],
             "4": ["assist", 50, "trapezoid", 2],
-            "5": ["assist", 50, "trapezoid", 0]
+            "5": ["transparent", 50, "trapezoid", 0]
         },
-        "randomize_trials": 1
+        "randomize_trials": 1,
+        "trial_randomization": "resist_then_assist_with_transparent"
     },
     "exo_parameters":{
         "forearm_attachment_leverage_mm": 180,

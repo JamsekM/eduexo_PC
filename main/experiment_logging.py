@@ -46,6 +46,7 @@ class Logger:
         self.data_dict["event_type"] = 0
         self.data_dict["timestamp"] = 0
         self.data_dict["prediction"] = 0
+        self.data_dict["exo_condition"] = 0
 
     def create_file(self):
         """
@@ -130,6 +131,7 @@ class Logger:
         self.data_dict["event_type"] = state_dict["event_type"]
         self.data_dict["timestamp"] = state_dict["timestamp"]
         self.data_dict["prediction"] = state_dict["event_type"]
+        self.data_dict["exo_condition"] = state_dict["exo_condition"]
 
         self.save_datapoint()
 

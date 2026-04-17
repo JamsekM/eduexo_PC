@@ -183,12 +183,14 @@ class LSLHandler:
                         event_type = state_dict["event_type"]
                         torque_profile = state_dict["torque_profile"]
                         torque_magnitude = state_dict["torque_magnitude"]
+                        exo_condition = state_dict["exo_condition"]
                         event_data = {
                             'Sample_Type': 'event',
                             'Event_ID': event_id,
                             'Event_Type': event_type,
                             'TorqueProfile': torque_profile,
                             'TorqueMagnitude': torque_magnitude,
+                            'ExoCondition': exo_condition,
                             'Event_Timestamp': self.timestamp
                         }
                         event_json_str = json.dumps(event_data)

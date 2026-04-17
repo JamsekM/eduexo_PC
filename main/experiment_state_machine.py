@@ -68,6 +68,7 @@ class StateMachine:
         self.torque = None
         self.torque_profile = None
         self.correctness = None
+        self.exo_condition = None
         self.LSL = LSL
         self.i = 0
         self.times = []
@@ -157,6 +158,8 @@ class StateMachine:
                     self.correctness = self.correctness_list[self.i]
                     self.torque_profile = self.torque_profile_list[self.i]
                     self.torque = self.torque_magnitude_list[self.i]
+                    self.exo_condition = self.exo_condition_list[self.i]
+                    state_dict["exo_condition"] = self.exo_condition_name(self.exo_condition)
                     if self.events[self.i] == 1:
                         self.i += 1
                         state_dict["trial"] = "UP"
@@ -381,6 +384,7 @@ class StateMachine:
             state_dict["remaining_time"] = ""
             state_dict["torque_profile"] = "None"
             state_dict["torque_magnitude"] = "None"
+            state_dict["exo_condition"] = "None"
 
         # Set current state name for display/logging
         if self.current_state is not None:
@@ -542,6 +546,11 @@ class StateMachine:
 
     #### TRIAL GENERATION
     @staticmethod
+    def exo_condition_name(condition_code):
+        conditions = {0: "resist", 1: "assist", 2: "transparent", 99: "None"}
+        return conditions.get(int(condition_code), "None")
+
+    @staticmethod
     def generate_familiarization_trials(n):
         """
         Generate familiarization trials with only incorrect executions (0).
@@ -549,22 +558,23 @@ class StateMachine:
         The events are split evenly between "UP" (1) and "DOWN" (0) trials.
         If n is odd, the extra trial is assigned as "UP".
         Returns:
-            np.ndarray: Array of shape (n, 4) with columns [event, execution, torque_profile, torque].
+            np.ndarray: Array of shape (n, 5) with columns [event, execution, torque_profile, torque, exo_condition].
         """
         ones = np.ones(n // 2, dtype=int)
         zeros = np.zeros(n // 2, dtype=int)
         if n % 2 != 0:
             ones = np.append(ones, 1)  # Ensure UP gets the extra trial
         events = np.append(ones, zeros)
-        executions = torque_profiles = torques = 99 * np.ones(n, dtype=int) # Placeholder, not used in familiarization
-        trials = np.column_stack((events, executions, torque_profiles, torques))
+        executions = torque_profiles = torques = exo_conditions = 99 * np.ones(n, dtype=int) # Placeholder, not used in familiarization
+        trials = np.column_stack((events, executions, torque_profiles, torques, exo_conditions))
         np.random.shuffle(trials)
         return trials
 
     def generate_trials(self, state_dict: dict) -> np.ndarray:
         """
         Generates all experiment trials, including familiarization, main, and end control trials.
-        Populates self.events, self.correctness_list, self.torque_profile_list, and self.torque_magnitude_list.
+        Populates self.events, self.correctness_list, self.torque_profile_list, self.torque_magnitude_list,
+        and self.exo_condition_list.
         Updates state_dict with total trial count and familiarization trial count.
 
         Args:
@@ -574,10 +584,11 @@ class StateMachine:
                 - end_control_trials: number of end control trials
                 - exo_parameters: dict with torque_limit
                 - randomize_trials: bool, whether to shuffle main trials
+                - trial_randomization: randomization protocol name
 
         Returns:
             np.ndarray: Array of all trials, where each row represents a trial with columns:
-                [event type, execution correctness, torque profile, torque magnitude].
+                [event type, execution correctness, torque profile, torque magnitude, EXO condition].
         """
 
         def generate_trials_for_condition(condition_id, assistance, condition_trial_No, torque_profile, torque_magnitude):
@@ -586,13 +597,13 @@ class StateMachine:
 
             Args:
                 condition_id: Identifier for the condition.
-                assistance: "assist" or "resist" (determines execution correctness).
+                assistance: "assist", "resist", or "transparent" (determines execution correctness and torque).
                 condition_trial_No: Number of trials for this condition.
                 torque_profile: Profile name or "random".
                 torque_magnitude: Torque value for all trials.
 
             Returns:
-                np.ndarray: Each row is [event type, execution correctness, torque profile, torque magnitude].
+                np.ndarray: Each row is [event type, execution correctness, torque profile, torque magnitude, EXO condition].
             """
             # Split events evenly between "UP" (1) and "DOWN" (0)
             ones = np.ones(condition_trial_No // 2, dtype=int)
@@ -603,11 +614,17 @@ class StateMachine:
             if condition_trial_No % 2 != 0:
                 events = np.append(events, int(1))  # Extra UP
 
-            # Set execution correctness: 1 for assist, 0 for resist
+            # Set EXO condition and execution correctness.
             if assistance == "assist":
                 executions = np.ones(condition_trial_No)
+                exo_conditions = np.ones(condition_trial_No)
             elif assistance == "resist":
                 executions = np.zeros(condition_trial_No)
+                exo_conditions = np.zeros(condition_trial_No)
+            elif assistance == "transparent":
+                executions = np.ones(condition_trial_No)
+                exo_conditions = 2 * np.ones(condition_trial_No)
+                torque_magnitude = 0
             else:
                 self.logger.error(f"Invalid assistance type: {assistance} in condition {condition_id}.")
                 return None  # Invalid assistance type
@@ -634,7 +651,7 @@ class StateMachine:
 
             torque_magnitude_labels = [torque_magnitude] * condition_trial_No
 
-            trial_rules_for_condition = np.column_stack((events, executions, torque_profile_labels, torque_magnitude_labels))
+            trial_rules_for_condition = np.column_stack((events, executions, torque_profile_labels, torque_magnitude_labels, exo_conditions))
             np.random.shuffle(trial_rules_for_condition)  # Shuffle trials within the condition
             return trial_rules_for_condition
 
@@ -648,15 +665,37 @@ class StateMachine:
 
         # --- MAIN TRIALS (VARYING EXECUTION CORRECTNESS, TORQUE PROFILE AND TORQUE LEVEL) ---
         # For each condition, generate the corresponding trials
-        all_condition_trials = []
+        condition_trials_by_exo_condition = {0: [], 1: [], 2: []}
         for condition_id, (assist, condition_No, torque_profile, torque) in state_dict["trial_conditions"].items():
             condition_trials = generate_trials_for_condition(condition_id, assist, condition_No, torque_profile, torque)
-            all_condition_trials.append(condition_trials)
+            if condition_trials is not None:
+                exo_condition = int(condition_trials[0, 4])
+                condition_trials_by_exo_condition[exo_condition].append(condition_trials)
+
+        def stack_condition_trials(condition_trials):
+            if condition_trials:
+                return np.vstack(condition_trials)
+            return np.empty((0, 5))
+
+        def shuffle_if_needed(trials):
+            if state_dict["randomize_trials"]:
+                np.random.shuffle(trials)
+            return trials
 
         # --- SHUFFLE MAIN TRIALS ---
-        main_trial_rules = np.vstack(all_condition_trials)
-        if state_dict["randomize_trials"]:
-            np.random.shuffle(main_trial_rules)
+        if state_dict["trial_randomization"] == "resist_then_assist_with_transparent":
+            resist_trials = stack_condition_trials(condition_trials_by_exo_condition[0])
+            assist_trials = stack_condition_trials(condition_trials_by_exo_condition[1])
+            transparent_trials = stack_condition_trials(condition_trials_by_exo_condition[2])
+
+            resist_block = shuffle_if_needed(np.vstack((resist_trials, transparent_trials)))
+            assist_block = shuffle_if_needed(np.vstack((assist_trials, transparent_trials)))
+            main_trial_rules = np.vstack((resist_block, assist_block))
+        else:
+            all_condition_trials = []
+            for condition_trials in condition_trials_by_exo_condition.values():
+                all_condition_trials.extend(condition_trials)
+            main_trial_rules = shuffle_if_needed(np.vstack(all_condition_trials))
 
         # --- COMBINE ALL TRIALS ---
         # Stack familiarization, main, and end control trials into one array
@@ -671,5 +710,6 @@ class StateMachine:
         self.correctness_list = final_trials[:, 1]
         self.torque_profile_list = final_trials[:, 2]
         self.torque_magnitude_list = final_trials[:, 3]
+        self.exo_condition_list = final_trials[:, 4]
 
         return final_trials

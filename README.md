@@ -105,11 +105,12 @@ This will start the experiment based on the configurations prepared in the previ
         "number_of_end_control_trials": 2               "Number of control trials at the end (without EXO active).",
         "trial_conditions": {
             "1": ["assist", 6, "sinusoidal", 1]         "Defines trial conditions as lists: [assistance type, number of trials, torque profile, torque magnitude]",
-            "2": ["resist", 10, "sinusoidal", 3]        "Assistance type: either 'assist' or 'resist'",
+            "2": ["resist", 10, "sinusoidal", 3]        "Assistance type: either 'assist', 'resist', or 'transparent'",
             "3": ["assist", 14, "rectangular", 0.2]     "number of trials: (int) split into UP and DOWN trials, if uneven extra UP trial is added",
             "4": ["resist", 8, "random", 1.7]           "torque profile: 'sinusoidal', 'rectangular', 'triangular', 'trapezoid', 'smooth_trapezoid' or 'random' for random profile inside condition"
         }                                               "torque magnitude: maximum torque in Nm during trial, if larger than 'torque_limit', it is set to 'torque_limit'",
-        "randomize_trials": 1                           "Flag to randomize all trials (1) or leave them in condition groups (0)"
+        "randomize_trials": 1                           "Flag to randomize trials inside the selected protocol (1) or leave them in condition groups (0)",
+        "trial_randomization": "full_random"            "Trial randomization protocol. Use 'full_random' to shuffle all main trials together or 'resist_then_assist_with_transparent' to run randomized resist+transparent trials followed by randomized assist+transparent trials"
     },
     "exo_parameters":{
         "forearm_attachment_leverage_mm": 180           "Distance from load cell to the rotation axis",
