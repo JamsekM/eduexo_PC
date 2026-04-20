@@ -4,26 +4,41 @@ import sys
 import numpy as np
 
 sys.path.append("main")
-from experiment_state_machine import StateMachine
+from trial_order import load_trial_order
 
 np.set_printoptions(threshold=sys.maxsize, linewidth=240)
+
+
+def _build_block_info(generation_config: dict) -> tuple[bool, int]:
+    trial_randomization = generation_config["trial_randomization"]
+    trial_conditions = generation_config["trial_conditions"]
+
+    resist_count = sum(c["condition_trial_no"] for c in trial_conditions if c["assistance"] == "resist")
+    assist_count = sum(c["condition_trial_no"] for c in trial_conditions if c["assistance"] == "assist")
+    transparent_count = sum(c["condition_trial_no"] for c in trial_conditions if c["assistance"] == "transparent")
+
+    if trial_randomization == "resist_then_assist_with_transparent":
+        return True, resist_count + transparent_count
+    if trial_randomization == "assist_then_resist_with_transparent":
+        return True, assist_count + transparent_count
+    return False, 0
 
 
 def main():
     with open("main/experiment_config.json", "r") as file:
         config = json.load(file)
 
-    state = {
-        "trial_conditions": config["experiment"]["trial_conditions"],
-        "familiarization_trials_No": config["experiment"]["number_of_familiarization_trials"],
-        "end_control_trials": config["experiment"]["number_of_end_control_trials"],
-        "randomize_trials": config["experiment"]["randomize_trials"],
-        "trial_randomization": config["experiment"].get("trial_randomization", "full_random"),
-        "exo_parameters": config["exo_parameters"],
-    }
-
-    state_machine = StateMachine(None)
-    trials = state_machine.generate_trials(state)
+    experiment = config["experiment"]
+    selected = experiment.get("selected_trial_order", "assist_first")
+    precomputed_paths = experiment.get("precomputed_trial_order_paths", {})
+    trial_order_path = precomputed_paths.get(selected)
+    if not trial_order_path:
+        raise ValueError(
+            f"No trial-order path for selected_trial_order='{selected}'. "
+            "Check experiment.precomputed_trial_order_paths in config."
+        )
+    metadata, trials = load_trial_order(trial_order_path)
+    generation_config = metadata["generation_config"]
 
     condition_names = {
         0: "resist",
@@ -36,12 +51,17 @@ def main():
         1: "UP",
     }
 
-    familiarization_n = state["familiarization_trial_No"]
+    familiarization_n = generation_config["familiarization_trials_no"]
+    end_control_n = generation_config["end_control_trials_no"]
     main_start = familiarization_n
-    main_end = len(trials) - state["end_control_trials"]
+    main_end = len(trials) - end_control_n
     main_trials = trials[main_start:main_end]
+    has_two_blocks, block_one_size = _build_block_info(generation_config)
 
     print("Columns: [global_index, phase, block, trial, condition, event, correctness, profile, torque]")
+    print(f"Selected order: {selected}")
+    print(f"Loaded from: {trial_order_path}")
+    print(f"Randomization mode: {generation_config['trial_randomization']}")
     print(f"Total trials: {len(trials)}")
     print(f"Main trials: {len(main_trials)}")
     print()
@@ -62,7 +82,10 @@ def main():
         else:
             phase = "main"
             main_index = index - main_start
-            block = 1 if main_index <= 150 else 2
+            if has_two_blocks:
+                block = 1 if main_index <= block_one_size else 2
+            else:
+                block = 1
             trial_number = main_index
 
         rows.append([

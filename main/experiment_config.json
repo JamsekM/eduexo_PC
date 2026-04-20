@@ -8,7 +8,7 @@
         "intention_time_range": [1, 1],
         "trial_timeout": 3,
         "number_of_familiarization_trials": 20,
-        "number_of_end_control_trials": 20,
+        "number_of_end_control_trials": 10,
         "trial_conditions": {
             "1": ["resist", 50, "trapezoid", 1],
             "2": ["resist", 50, "trapezoid", 2],
@@ -17,7 +17,11 @@
             "5": ["transparent", 50, "trapezoid", 0]
         },
         "randomize_trials": 1,
-        "trial_randomization": "resist_then_assist_with_transparent"
+        "selected_trial_order": "assist_first",
+        "precomputed_trial_order_paths": {
+            "assist_first": "main/trial_order_assist_first.txt",
+            "resist_first": "main/trial_order_resist_first.txt"
+        }
     },
     "exo_parameters":{
         "forearm_attachment_leverage_mm": 180,

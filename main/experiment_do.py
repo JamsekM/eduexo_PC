@@ -8,6 +8,10 @@ from experiment_interface import Interface
 from experiment_state_machine import StateMachine
 from experiment_logging import Logger
 from experiment_LSL import LSLHandler
+from trial_order import (
+    DEFAULT_TRIAL_ORDER_PATH,
+    resolve_trial_order_selection,
+)
 
 def initialize_state_dict(state_dict, experiment_config):
     """
@@ -29,7 +33,23 @@ def initialize_state_dict(state_dict, experiment_config):
     state_dict["end_control_trials"] = experiment_config["experiment"]["number_of_end_control_trials"]
     state_dict["trial_conditions"] = experiment_config["experiment"]["trial_conditions"]
     state_dict["randomize_trials"] = experiment_config["experiment"]["randomize_trials"]
-    state_dict["trial_randomization"] = experiment_config["experiment"].get("trial_randomization", "full_random")
+    state_dict["selected_trial_order"] = experiment_config["experiment"].get("selected_trial_order", "assist_first")
+    _, selected_trial_randomization = resolve_trial_order_selection(state_dict["selected_trial_order"])
+    state_dict["trial_randomization"] = selected_trial_randomization
+
+    precomputed_paths = experiment_config["experiment"].get("precomputed_trial_order_paths")
+    if precomputed_paths:
+        selected_path = precomputed_paths.get(state_dict["selected_trial_order"])
+        if selected_path is None:
+            raise ValueError(
+                f"Missing precomputed_trial_order_paths['{state_dict['selected_trial_order']}'] in experiment_config."
+            )
+        state_dict["precomputed_trial_order_path"] = selected_path
+    else:
+        state_dict["precomputed_trial_order_path"] = experiment_config["experiment"].get(
+            "precomputed_trial_order_path",
+            DEFAULT_TRIAL_ORDER_PATH,
+        )
 
     state_dict["fullscreen"] = experiment_config["interface_data"]["full_screen_mode"]
     state_dict["data_stream_interval"] = experiment_config["interface_data"]["data_stream_interval"]

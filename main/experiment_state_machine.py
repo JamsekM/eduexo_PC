@@ -3,6 +3,11 @@ import numpy as np
 import random
 import pygame
 import logging
+from trial_order import (
+    apply_trials_to_state_machine,
+    load_trial_order,
+    validate_trial_order_for_state_dict,
+)
 
 class StateMachine:
     """ 
@@ -412,7 +417,14 @@ class StateMachine:
         state_dict["current_trial_No"] = 0
 
     def set_start_experiment(self, state_dict):
-        self.generate_trials(state_dict)
+        trial_order_path = state_dict["precomputed_trial_order_path"]
+        try:
+            metadata, trials = load_trial_order(trial_order_path)
+            validate_trial_order_for_state_dict(metadata, trials, state_dict)
+            apply_trials_to_state_machine(self, state_dict, trials)
+        except Exception as e:
+            self.logger.error(f"Failed to load compatible precomputed trial order from '{trial_order_path}': {e}")
+            raise
         state_dict["experiment_start"] = time()
         state_dict["main_text"] = ""
         state_dict["background_color"] = "black"
@@ -691,6 +703,14 @@ class StateMachine:
             resist_block = shuffle_if_needed(np.vstack((resist_trials, transparent_trials)))
             assist_block = shuffle_if_needed(np.vstack((assist_trials, transparent_trials)))
             main_trial_rules = np.vstack((resist_block, assist_block))
+        elif state_dict["trial_randomization"] == "assist_then_resist_with_transparent":
+            resist_trials = stack_condition_trials(condition_trials_by_exo_condition[0])
+            assist_trials = stack_condition_trials(condition_trials_by_exo_condition[1])
+            transparent_trials = stack_condition_trials(condition_trials_by_exo_condition[2])
+
+            assist_block = shuffle_if_needed(np.vstack((assist_trials, transparent_trials)))
+            resist_block = shuffle_if_needed(np.vstack((resist_trials, transparent_trials)))
+            main_trial_rules = np.vstack((assist_block, resist_block))
         else:
             all_condition_trials = []
             for condition_trials in condition_trials_by_exo_condition.values():
