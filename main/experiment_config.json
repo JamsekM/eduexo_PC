@@ -17,7 +17,7 @@
             "5": ["transparent", 50, "trapezoid", 0]
         },
         "randomize_trials": 1,
-        "selected_trial_order": "assist_first",
+        "selected_trial_order": "resist_first",
         "precomputed_trial_order_paths": {
             "assist_first": "main/trial_order_assist_first.txt",
             "resist_first": "main/trial_order_resist_first.txt"
@@ -46,8 +46,8 @@
         "results_path": "./analysis/experiment_results"  
     },
     "participant": {
-        "age": 32,
+        "age": 28,
         "id": 1,
-        "name": "Marko"
+        "name": "Oceane"
     }
 }
