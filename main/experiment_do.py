@@ -29,6 +29,7 @@ def initialize_state_dict(state_dict, experiment_config):
     state_dict["imagination_time_range"] = experiment_config["experiment"]["imagination_time_range"]
     state_dict["intention_time_range"] = experiment_config["experiment"]["intention_time_range"]
     state_dict["timeout"] = state_dict["TO"] = experiment_config["experiment"]["trial_timeout"]
+    state_dict["minimum_success_time_s"] = float(experiment_config["experiment"].get("minimum_success_time_s", 0.0))
     state_dict["familiarization_trials_No"] = experiment_config["experiment"]["number_of_familiarization_trials"]
     state_dict["end_control_trials"] = experiment_config["experiment"]["number_of_end_control_trials"]
     state_dict["trial_conditions"] = experiment_config["experiment"]["trial_conditions"]

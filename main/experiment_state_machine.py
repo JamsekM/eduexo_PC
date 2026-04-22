@@ -231,10 +231,15 @@ class StateMachine:
 
         elif self.current_state == StateMachine.MOVING_UP:
             if state_dict["is_UP"]:
-                self.current_state = StateMachine.IN_UPPER_BAND
-                self.set_in_upper_band(state_dict)
-                self.set_success(state_dict)
-                self.times.append(state_dict["TO"] - state_dict["remaining_time"])
+                elapsed_time = time() - state_dict["trial_time"]
+                if elapsed_time < state_dict.get("minimum_success_time_s", 0.0):
+                    self.current_state = StateMachine.FAILURE
+                    self.set_failure(state_dict, "TOO FAST")
+                else:
+                    self.current_state = StateMachine.IN_UPPER_BAND
+                    self.set_in_upper_band(state_dict)
+                    self.set_success(state_dict)
+                    self.times.append(state_dict["TO"] - state_dict["remaining_time"])
             elif state_dict["is_DOWN"]:
                 self.current_state = StateMachine.FAILURE
                 self.set_failure(state_dict)  
@@ -269,10 +274,15 @@ class StateMachine:
             
         elif self.current_state == StateMachine.MOVING_DOWN:    
             if state_dict["is_DOWN"]:
-                self.current_state = StateMachine.IN_LOWER_BAND
-                self.set_in_lower_band(state_dict)
-                self.set_success(state_dict)
-                self.times.append(state_dict["TO"] - state_dict["remaining_time"])
+                elapsed_time = time() - state_dict["trial_time"]
+                if elapsed_time < state_dict.get("minimum_success_time_s", 0.0):
+                    self.current_state = StateMachine.FAILURE
+                    self.set_failure(state_dict, "TOO FAST")
+                else:
+                    self.current_state = StateMachine.IN_LOWER_BAND
+                    self.set_in_lower_band(state_dict)
+                    self.set_success(state_dict)
+                    self.times.append(state_dict["TO"] - state_dict["remaining_time"])
             elif state_dict["is_UP"]:
                 self.current_state = StateMachine.FAILURE
                 self.set_failure(state_dict)                              
