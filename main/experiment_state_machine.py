@@ -517,10 +517,11 @@ class StateMachine:
         state_dict["event_id"] = StateMachine.success    
         self.LSL.EXO_stream_out(state_dict, trial_over = True)
 
-    def set_failure(self, state_dict):
+    def set_failure(self, state_dict, display_text="FAIL"):
         state_dict["state_start_time"] = time()
         state_dict["state_wait_time"] = 1.5
-        state_dict["main_text"] = state_dict["event_type"] = "FAIL"
+        state_dict["main_text"] = display_text
+        state_dict["event_type"] = "FAIL"
         state_dict["event_id"] = StateMachine.failure  
         self.LSL.EXO_stream_out(state_dict, trial_over = True)
 
